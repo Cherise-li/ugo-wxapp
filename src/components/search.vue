@@ -1,121 +1,256 @@
-<template lang="wxml">
-  <!-- 搜索区域 -->
-  <!-- 顶部搜索栏 -->
-		<view class="nav" :class="{'focus':isFocus}">
-			<view class="top">
-                <input type="text" @focus="addClass" :placeholder='placeholder'>
-                <view class="cancel" @tap="blur" v-show="isFocus">取消</view>
-                <view class="icon_1" v-if="!isFocus">搜索</view>
-                <view class="icon_2" v-else ></view>
-            </view>
-            <view class="btm" v-show="isFocus">历史记录</view>
-		</view>
+<template>
+  <!-- 搜索 -->
+  <div class="search" :class="{focused: focused}">
+    <!-- 搜索框 -->
+    <div class="input-wrap" @click="goSearch">
+      <input
+      type="text"
+      :placeholder="placeholder"
+      @input="getValue"
+      v-model="search"
+      @confirm='confirm'>
+      <span class="cancle" @click.stop="cancleSearch">取消</span>
+    </div>
+    <!-- 搜索结果 -->
+    <div class="content">
+      <view class="title">搜索历史<span class="clear"></span></view>
+      <div class="history">
+        <navigator
+        :url="`/pages/list/index?query=${item}`"
+        v-for="(item,i) in history"
+        :key="i">{{item}}</navigator>
+      </div>
+      <view>测试数据</view>
+      <!-- 结果 -->
+      <scroll-view scroll-y class="result">
+        <navigator
+        :url="`/pages/goods/index?id=${item.goods_id}`"
+        v-for="item in result"
+        :key="item.goods_id">
+        {{item.goods_name}}
+        </navigator>
+      </scroll-view>
+    </div>
+  </div>
 </template>
 
 <script>
-export default {
-    data() {
-        return {
-            isFocus: false,
-            placeholder: ''
-        }
+  export default {
+    data () {
+      return {
+        focused: false,
+        placeholder: '',
+        search: '',
+        result: [],
+        history: uni.getStorageSync('history') || []
+      }
     },
     methods: {
-        addClass () {
-            this.isFocus = true
-            this.placeholder='请输入您想要的商品'
-            const info = uni.getSystemInfoSync()
-            this.$emit('send',info.windowHeight+'px')
-        },
-        blur () {
-            this.isFocus = false;
-            this.placeholder=''
-            this.$emit('send','auto')
-        }
+      async getValue () {
+        const {message} = await this.request({
+          url: '/api/public/v1/goods/qsearch',
+          data: {
+            query: this.search
+          }
+        })
+        this.result = message
+      },
+     confirm () {
+        uni.navigateTo({
+        url: '/pages/list/index?query=' + this.search
+        })
+        this.history.unshift(this.search)
+        this.history = [...new Set(this.history)]
+        uni.setStorageSync('history',this.history)
+        console.log(this.history);
+        
+      },
+      goSearch (ev) {
+        this.focused = true;
+        this.placeholder = '请输入您要搜索的内容';
+        
+        // 触发父组件自定义事件
+        this.$emit('search', {
+          pageHeight: uni.getSystemInfoSync().windowHeight
+        });
+
+        // 隐藏tabBar
+        uni.hideTabBar();
+      },
+      cancleSearch () {
+        this.focused = false;
+        this.placeholder = '';
+
+        // 触发父组件自定义事件
+        this.$emit('search', {
+          pageHeight: 'auto'
+        });
+
+        // 显示tabBar
+        uni.showTabBar();
+        this.search = ''
+        this.result = ''
+      }
     }
-}
+  }
 </script>
 
-<style scoped lang='less'>
-	
-		.nav {
-            .top {
-                position: relative;
-                box-sizing: border-box;
-                padding: 20rpx 16rpx;
-                background-color: red;
+<style lang="less" scoped>
+  .search {
+    display: flex;
+    flex-direction: column;
+    
+    // 搜索框
+    .input-wrap {
+      display: flex;
+      height: 100rpx;
+      padding: 20rpx 30rpx;
+      background-color: #ea4451;
+      box-sizing: border-box;
+      position: relative;
 
-                input {
-                    height: 60rpx;
-                    width: 100%;
-                    background-color: #fff;
-                    border-radius: 6rpx;
-                }
-                .icon_1 {
-                    display: block;
-                    background: url(http://static.botue.com/ugo/images/icon_search%402x.png) no-repeat;
-                    background-size: 32rpx;
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%,-50%);
-                    font-size: 24rpx;
-                    // content区 是包括 padding区域,背景图要出现在content区域；
-                    padding-left: 50rpx;
-                    color:#ccc;
-                }
-            }
+      &::before,
+      &::after {
+        height: 44rpx;
+        line-height: 1;
+        background-image: url(http://static.botue.com/ugo/images/icon_search%402x.png);
+        background-size: 32rpx;
+        background-position: 6rpx center;
+        background-repeat: no-repeat;
+
+        position: absolute;
+        top: 28rpx;
+        z-index: 9;
+      }
+
+      &::before {
+        content: '搜索';
+        display: block;
+
+        width: 100rpx;
+        padding: 11rpx 0 10rpx 44rpx;
+        box-sizing: border-box;
+        color: #666;
+        font-size: 24rpx;
+        left: 325rpx;
+      }
+
+      &::after {
+        display: none;
+        content: '';
+        width: 44rpx;
+        left: 40rpx;
+      }
+
+      input {
+        flex: 1;
+        height: 60rpx;
+        padding: 0 20rpx 0 64rpx;
+        background-color: #fff;
+        border-radius: 8rpx;
+        font-size: 24rpx;
+        color: #666;
+      }
+
+      span.cancle {
+        display: none;
+        width: 80rpx;
+        text-align: right;
+        line-height: 60rpx;
+        font-size: 27rpx;
+        color: #666;
+      }
+    }
+
+    // 搜索结果
+    .content {
+      display: none;
+      flex: 1;
+      padding: 27rpx;
+      background-color: #fff;
+      position: relative;
+
+      .title {
+        font-size: 27rpx;
+        line-height: 1;
+        color: #333;
+      }
+
+      .clear {
+        display: block;
+        width: 27rpx;
+        height: 27rpx;
+        float: right;
+        background-image: url(http://static.botue.com/ugo/images/clear.png);
+        background-size: cover;
+      }
+
+      .history {
+        padding-top: 30rpx;
+
+        navigator {
+          display: inline-block;
+          line-height: 1;
+          padding: 15rpx 20rpx 12rpx;
+          background-color: #ddd;
+          font-size: 24rpx;
+          margin-right: 20rpx;
+          margin-bottom: 15rpx;
+          color: #333;
         }
-        .focus {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            z-index: 999;
-            .top {
-                    background-color: rgb(239, 239, 239);
-                    display: flex;
-                    input {
-                        flex: 1;
-                        padding-left: 55rpx;
-                        font-size: 24rpx;
-                        color: #ccc;
-                    }
-                    .cancel {
-                        display: block;
-                        width: 150rpx;
-                        border:1px solid #ccc;
-                        line-height: 60rpx;
-                        box-sizing: border-box;
-                        text-align: center;
-                        font-size: 24rpx;
-                        border-radius: 10rpx;
-                        margin-left: 20rpx;
-                    }
-                    .icon_2 {
-                        display: block;
-                        position: absolute;
-                        top: 50%;
-                        left: 30rpx;
-                        transform: translateY(-50%);
-                        width: 32rpx;
-                        height: 32rpx;
-                        background: url(http://static.botue.com/ugo/images/icon_search%402x.png) no-repeat;
-                        background-size: 32rpx;
-                    }
-               }
-              
-            
-            .btm {
-                display: block;
-                position: absolute;
-                top: 100rpx;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background-color: pink;
-               }
+      }
 
-           
-           }
-		
+      .result {
+        // display: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background-color: #fff;
+
+        navigator {
+          line-height: 1;
+          padding: 20rpx 30rpx;
+          font-size: 24rpx;
+          color: #666;
+          border-bottom: 1px solid #eee;
+
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+      }
+    }
+    
+    // 获得焦点状态
+    &.focused {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 9;
+
+      .input-wrap {
+        background-color: #eee;
+
+        &::before {
+          display: none;
+        }
+
+        &::after {
+          display: block;
+        }
+      }
+
+      span.cancle {
+        display: block;
+      }
+
+      .content {
+        display: block;
+      }
+    }
+  }
 </style>
