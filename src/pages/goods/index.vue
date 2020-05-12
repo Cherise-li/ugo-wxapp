@@ -2,38 +2,27 @@
   <view class="wrapper">
     <!-- 商品图片 -->
     <swiper class="pics" indicator-dots indicator-color="rgba(255, 255, 255, 0.6)" indicator-active-color="#fff">
-      <swiper-item>
-        <image src="http://static.botue.com/ugo/uploads/detail_1.jpg"></image>
+      <swiper-item v-for="item in goods.pics" :key="item.pics_id">
+        <image :src="item.pics_big"></image>
       </swiper-item>
-      <swiper-item>
-        <image src="http://static.botue.com/ugo/uploads/detail_2.jpg"></image>
-      </swiper-item>
-      <swiper-item>
-        <image src="http://static.botue.com/ugo/uploads/detail_3.jpg"></image>
-      </swiper-item>
-      <swiper-item>
-        <image src="http://static.botue.com/ugo/uploads/detail_4.jpg"></image>
-      </swiper-item>
-      <swiper-item>
-        <image src="http://static.botue.com/ugo/uploads/detail_5.jpg"></image>
-      </swiper-item>
+      
     </swiper>
     <!-- 基本信息 -->
     <view class="meta">
-      <view class="price">￥199</view>
-      <view class="name">初语秋冬新款毛衣女 套头宽松针织衫简约插肩袖上衣</view>
+      <view class="price">￥{{goods.goods_price}}</view>
+      <view class="name">{{goods.goods_name}}</view>
       <view class="shipment">快递: 免运费</view>
       <text class="collect icon-star">收藏</text>
     </view>
     <!-- 商品详情 -->
     <view class="detail">
-      <rich-text></rich-text>
+      <rich-text :nodes="goods.goods_introduce"></rich-text>
     </view>
     <!-- 操作 -->
     <view class="action">
       <button open-type="contact" class="icon-handset">联系客服</button>
       <text class="cart icon-cart" @click="goCart">购物车</text>
-      <text class="add">加入购物车</text>
+      <text class="add" @tap='add'>加入购物车</text>
       <text class="buy" @click="createOrder">立即购买</text>
     </view>
   </view>
@@ -41,8 +30,101 @@
 
 <script>
   export default {
+    data() {
+      return {
+        goods: null,
+        list:uni.getStorageSync("cc")||[]
+      }
+    },
+
+    onLoad (e) {
+      this.getGoods(e.id)
+    },
 
     methods: {
+       async getGoods(id){
+        
+        const {message} = await this.request({
+          url: '/api/public/v1/goods/detail',
+          data: {
+            goods_id: id
+          }
+        });
+
+        this.goods = message
+      },
+        
+      //  add(){
+      //   // 准备一条 名字、图片、价格等
+      //   var obj = {
+      //     goods_id:this.goods.goods_id,
+      //     goods_name:this.goods.goods_name,
+      //     goods_price:this.goods.goods_price,
+      //     goods_number:1,
+      //     goods_small_logo:this.goods.goods_small_logo
+      //   };
+
+
+      //   // 3.添加到this.list这里；
+      //   // 需要：判断商品是否重复？
+
+      //   // 3.1 假设该商品不重复：
+      //   var key="未重复";
+
+      //   // 3.2 验证：遍历数组this.list 到底有没有重复？
+      //   for (var i = 0; i < this.list.length; i++) {
+      //     // 商品重复；做什么事？商品重复number++ 
+      //     if (this.list[i].goods_id == obj.goods_id) {
+      //       this.list[i].goods_number++;
+      //       key = "已重复";
+      //       break;
+      //     }
+      //   }
+
+      //   // 3.3 看此时key 已经经过验证后的 状态
+      //   // 上面没有一个商品是重复过，这确实是一个新的商品
+      //   // 新的商品？如何？怎么办？添加
+      //   if (key=="未重复") {
+      //     this.list.push(obj);
+      //   }
+
+
+      //   // 4.this.list  JS数组：已经发生改变了。要怎么办？存到本地
+      //   // 名字：哪个？
+      //   uni.setStorageSync("cc",this.list);
+      //   // 
+
+
+      //   // 5.友好提醒
+      //   uni.showToast({title:"添加成功"});
+
+      // },
+       add () {
+
+        // 加入购物车,传入商品信息,并同步到本地存储
+         var obj = {
+          goods_id:this.goods.goods_id,
+          goods_name:this.goods.goods_name,
+          goods_price:this.goods.goods_price,
+          goods_number:1,
+          goods_small_logo:this.goods.goods_small_logo,
+          checked: true
+        };
+        // 判断要加入的商品是否已存在
+        var key = 'true'
+        this.list.forEach((element) => {
+          console.log(element);
+          if(element.goods_id === obj.goods_id) {
+            element.goods_number++
+            key = 'false'
+            return
+          } 
+          
+          if(key === 'true')
+          this.list.push(obj)
+          uni.setStorageSync("cc",this.list)
+         uni.showToast({title:"添加成功"})
+        });},
       goCart () {
         uni.switchTab({
           url: '/pages/cart/index'

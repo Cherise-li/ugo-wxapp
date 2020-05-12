@@ -1,102 +1,178 @@
 <template>
   <view class="wrapper">
     <!-- 收货信息 -->
-    <view class="shipment">
-      <view class="dt">收货人: </view>
-      <view class="dd meta">
-        <text class="name">刘德华</text>
-        <text class="phone">13535337057</text>
-      </view>
-      <view class="dt">收货地址:</view>
-      <view class="dd">广东省广州市天河区一珠吉</view>
-    </view>
+   <!-- 判断有没有收货地址？没有地址，下面信息框 不显示 -->
+  <block v-if="addr">
+        <view class="dt">收货人: </view>
+        <view class="dd meta">
+          <text class="name">{{addr.userName}}</text>
+          <text class="phone">{{addr.telNumber}}</text>
+        </view>
+        <view class="dt">收货地址:</view>
+        <view class="dd">{{addr.detail}}</view>
+  </block>
+
+
+<!-- 按钮：点击获取地址 -->
+  <button
+  v-else
+  type="primary"
+  @tap='getAddr'>收货地址</button>
     <!-- 购物车 -->
     <view class="carts">
       <view class="item">
         <!-- 店铺名称 -->
         <view class="shopname">优购生活馆</view>
-        <view class="goods">
+        <view
+        class="goods"
+        v-for="(item,i) in list"
+        :key="item.goods_id">
           <!-- 商品图片 -->
-          <image class="pic" src="http://static.botue.com/ugo/uploads/goods_1.jpg"></image>
+          <image class="pic" :src="item.goods_small_logo"></image>
           <!-- 商品信息 -->
           <view class="meta">
-            <view class="name">【海外购自营】黎珐(ReFa) MTG日本 CARAT铂金微电流瘦脸瘦身提拉紧致V脸美容仪 【保税仓发货】</view>
+            <view class="name">{{item.goods_name}}</view>
             <view class="price">
-              <text>￥</text>1399<text>.00</text>
+              <text>￥</text>{{item.goods_price}}<text>.00</text>
             </view>
             <!-- 加减 -->
             <view class="amount">
-              <text class="reduce">-</text>
-              <input type="number" value="1" class="number">
-              <text class="plus">+</text>
+              <text class="reduce" @tap='cNum(-1,i)'>-</text>
+              <input type="number" :value="item.goods_number" class="number">
+              <text class="plus" @tap='cNum(1,i)'>+</text>
             </view>
           </view>
           <!-- 选框 -->
           <view class="checkbox">
-            <icon type="success" size="20" color="#ea4451"></icon>
+            <icon
+            type="success"
+            size="20"
+            :color="item.checked?'#ea4451':'#ccc'"
+            @tap='changeCk(i)'></icon>
           </view>
         </view>
-        <view class="goods">
-          <!-- 商品图片 -->
-          <image class="pic" src="http://static.botue.com/ugo/uploads/goods_2.jpg"></image>
-          <!-- 商品信息 -->
-          <view class="meta">
-            <view class="name">【海外购自营】黎珐(ReFa) MTG日本 CARAT铂金微电流瘦脸瘦身提拉紧致V脸美容仪 【保税仓发货】</view>
-            <view class="price">
-              <text>￥</text>1399<text>.00</text>
-            </view>
-            <!-- 加减 -->
-            <view class="amount">
-              <text class="reduce">-</text>
-              <input type="number" value="1" class="number">
-              <text class="plus">+</text>
-            </view>
-          </view>
-          <!-- 选框 -->
-          <view class="checkbox">
-            <icon type="success" size="20" color="#ea4451"></icon>
-          </view>
-        </view>
-        <view class="goods">
-          <!-- 商品图片 -->
-          <image class="pic" src="http://static.botue.com/ugo/uploads/goods_5.jpg"></image>
-          <!-- 商品信息 -->
-          <view class="meta">
-            <view class="name">【海外购自营】黎珐(ReFa) MTG日本 CARAT铂金微电流瘦脸瘦身提拉紧致V脸美容仪 【保税仓发货】</view>
-            <view class="price">
-              <text>￥</text>1399<text>.00</text>
-            </view>
-            <!-- 加减 -->
-            <view class="amount">
-              <text class="reduce">-</text>
-              <input type="number" value="1" class="number">
-              <text class="plus">+</text>
-            </view>
-          </view>
-          <!-- 选框 -->
-          <view class="checkbox">
-            <icon type="success" size="20" color="#ccc"></icon>
-          </view>
-        </view>
+       
+        
       </view>
     </view>
     <!-- 其它 -->
     <view class="extra">
       <label class="checkall">
-        <icon type="success" color="#ccc" size="20"></icon>
+       <icon
+            type="success"
+            size="20"
+            :color="is?'#ea4451':'#ccc'"
+            @tap='checkAll'>
         全选
+        </icon>
       </label>
       <view class="total">
-        合计: <text>￥</text><label>14110</label><text>.00</text>
+        合计: <text>￥</text><label>{{sum}}</label><text>.00</text>
       </view>
-      <view class="pay">结算(3)</view>
+      <view class="pay" @tap='goPay'>结算(3)</view>
     </view>
   </view>
 </template>
 
 <script>
   export default {
+    data () {
+      return {
+        list: [],
+        addr: null
+      }
+    },
+    onShow () {
+      this.list = uni.getStorageSync("cc")||[]
+    },
+     computed: {
+        buyCar: function () {
+          const arr = []
+          // 遍历购物车,查看购物车商品的状态
+          this.list.forEach((item,i)=> {
+            // 如果是选中状态,则添加到选中的列表中
+            if (item.checked) {
+              arr.push(item)
+            }
+          })
+        // 返回数据
+        return arr
+        },
+
+        is: function () {
+          return this.list.length === this.buyCar.length
+        },
+        sum () {
+          var total = 0
+          this.buyCar.forEach((item,i)=> {
+            
+            total += item.goods_number * item.goods_price
+          })
+          // 返回总价
+          return total
+        }
+     },
+    methods: {
+      goPay () {
+        // 1. 判断是否有收货地址,没有提醒输入收获地址
+        if (!this.addr) {
+          uni.showToast({title:"没有收货地址！",icon:"none"});
+          return;
+        }
+        //2. 判断购物车是否有商品
+        if(!this.buyCar.length) {
+          uni.showToast({title: '没有选中任何商品',icon:'none'})
+          return
+        }
+        // 3. 判断是否有token
+        if (!uni.getStorageSync('token')) {
+          uni.navigateTo({
+            url: "/pages/auth/index"
+          })
+        }
+      },
+      getAddr () {
+        uni.chooseAddress({
+        success:(res)=>{
+        this.addr = res;
+        // 详细地址
+        this.addr.details = res.provinceName+res.cityName+res.countyName+res.detailInfo;
+    }
+});
+      },
+      checkAll () {
+        //  Computed property "is" was assigned to but it has no setter
+        // 不能这样写  只能获取 不能设置 this.is = !this.is
+        const key = !this.is
+        // 设置给所有的数据的状态
+        // 遍历数组
+        this.list.forEach (item=> {
+          item.checked = key
+        })
+        // 保存到本地
+        uni.setStorageSync('cc',this.list)
+      },
+      changeCk (i) {
     
+         // 取反：
+        this.list[i].checked = !this.list[i].checked;
+
+        // 代码？存入本地？为什么要存入本地？修改了数据 
+        uni.setStorageSync("cc",this.list);
+      
+      },
+      cNum (n,i) {
+        // 如果是-1,判断商品数量是否等于1,等于1的话则不能再减
+        if (n===-1&&this.list[i].goods_number===1){ return }
+
+        // 如果是+1,判断商品数量是否到达库存,达到就不能再加
+        if (n===1 && this.list[i].goods_number===10) { return }
+        // js中改变商品数量值
+        this.list[i].goods_number+=n
+        // 将改变的值存入本地
+        uni.setStorageSync('cc',this.list)
+      }
+    }
   }
 </script>
 

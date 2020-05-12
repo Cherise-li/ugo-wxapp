@@ -11,7 +11,8 @@ export default function (Vue) {
       })
       const [err,res] = await uni.request({
           url: baseUrl + options.url,
-          data: options.data
+        data: options.data,
+          method: options.method
       })
       // 请求成功后hideLoading
       uni.hideLoading()
