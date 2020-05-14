@@ -25,21 +25,21 @@
         // 获取成功后,作为参数传入获取token的请求中
         this.getToken(e.detail)
       },
-      async getToken (info) {
+      async getToken (data) {
         // code：JS api 直接进行获取  uni.login() 异步
         const [err,res] = await uni.login()
         // 发请求
-        // const {message} = await this.request({
-        //   url:"/api/public/v1/users/wxlogin",
-        //   method:"POST",
-        //   data:{
-        //     encryptedData:data.encryptedData,
-        //     iv:data.iv,
-        //     rawData:data.rawData,
-        //     signature:data.signature,
-        //     code:codeRes.code,
-        //   }
-        // })
+        const {message} = await this.request({
+          url:"/api/public/v1/users/wxlogin",
+          method:"POST",
+          data:{
+            encryptedData:data.encryptedData,
+            iv:data.iv,
+            rawData:data.rawData,
+            signature:data.signature,
+            code:res.code,
+          }
+        })
       }
     }
   }
