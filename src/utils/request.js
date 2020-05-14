@@ -10,7 +10,8 @@ export default function (Vue) {
         title: '加载中...'
       })
       const [err,res] = await uni.request({
-          url: baseUrl + options.url,
+        url: baseUrl + options.url,
+        header: options.header,
         data: options.data,
           method: options.method
       })

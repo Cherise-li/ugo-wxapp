@@ -113,7 +113,7 @@
         }
      },
     methods: {
-      goPay () {
+      async goPay () {
         // 1. 判断是否有收货地址,没有提醒输入收获地址
         if (!this.addr) {
           uni.showToast({title:"没有收货地址！",icon:"none"});
@@ -128,6 +128,26 @@
         if (!uni.getStorageSync('token')) {
           uni.navigateTo({
             url: "/pages/auth/index"
+          })
+        }
+        const {message,meta} = await this.request({
+          url: '',
+          header: {
+            Authorization:uni.getStorageSync("token")
+          },
+          methods: 'POST',
+          data: {
+            order_price:this.sum,
+            consignee_addr:this.addr.detail,
+            goods:this.buyCar
+          }
+        })
+        if (meta.status === 200) {
+          // 清除本地购物车商品数据
+          uni.removeStorageSync('cc')
+          // 跳转到订单页面
+          uni.navigateTo({
+            url: '/pages/order/index'
           })
         }
       },
